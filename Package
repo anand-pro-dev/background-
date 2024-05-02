@@ -1,0 +1,81 @@
+void backgroundFetchHeadlessTask(HeadlessTask task) async {
+  var taskId = task.taskId;
+  bool isTimeout = task.timeout;
+  if (isTimeout) {
+    // This task has exceeded its allowed running-time.
+    // You must stop what you're doing and immediately .finish(taskId)
+    print("[BackgroundFetch] Headless task timed out: $taskId");
+    BackgroundFetch.finish(taskId);
+    return;
+  }
+  print('[BackgroundFetch] Headless event received.');
+
+  // Perform your HTTP GET request here
+  var response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/posts/1'));
+  if (response.statusCode == 200) {
+    print('API data fetched in background: ${response.body}');
+  } else {
+    print('Failed to fetch data');
+  }
+
+  // Important: You must signal completion of your task or the OS can punish your app
+  // for taking too long in the background.
+  BackgroundFetch.finish(taskId);
+}
+
+void main() {
+  runApp(MyApp());
+  BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
+}
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    initPlatformState();
+  }
+
+  Future<void> initPlatformState() async {
+    BackgroundFetch.configure(BackgroundFetchConfig(
+      minimumFetchInterval: 15,
+      stopOnTerminate: false,
+      enableHeadless: true,
+      requiresBatteryNotLow: true,
+      requiresCharging: false,
+      requiresStorageNotLow: true,
+      requiresDeviceIdle: false,
+    ), (String taskId) async {
+      print("Background Fetch event received: $taskId");
+
+      // Perform your GET request here
+      var response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/posts/1'));
+      if (response.statusCode == 200) {
+        print('API data fetched: ${response.body}');
+      } else {
+        print('Failed to fetch data');
+      }
+
+      // IMPORTANT: You must signal completion of your background task
+      BackgroundFetch.finish(taskId);
+    }).then((int status) {
+      print('Background Fetch initialized with status: $status');
+    }).catchError((e) {
+      print('Background Fetch failed to initialize: $e');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: Text('Background Fetch Example')),
+        body: Center(child: Text('Check logs for background fetch events.')),
+      ),
+    );
+  }
+}
