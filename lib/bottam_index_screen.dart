@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:back_gournd_noti/screens/custom_snakbar/custom_snakbar.dart';
 import 'package:flutter/material.dart';
 
 class BottomIndexScreen extends StatefulWidget {
@@ -16,10 +17,7 @@ class _BottomIndexScreenState extends State<BottomIndexScreen>
   static const TextStyle optionStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
   static const List<Widget> _widgetOptions = <Widget>[
-    Text(
-      'Index 0: Home',
-      style: optionStyle,
-    ),
+    CustomSnackBar(),
     Text(
       'Index 1: Business',
       style: optionStyle,

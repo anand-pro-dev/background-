@@ -1,4 +1,5 @@
 import 'package:back_gournd_noti/bottam_index_screen.dart';
+import 'package:back_gournd_noti/screens/custom_snakbar/custom_snakbar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: BottomIndexScreen(),
+      // home: CustomSnackBar(),
     );
   }
 }
