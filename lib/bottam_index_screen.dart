@@ -1,21 +1,21 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 
-class BottomNavigationBarExample extends StatefulWidget {
-  const BottomNavigationBarExample({super.key});
+class BottomIndexScreen extends StatefulWidget {
+  const BottomIndexScreen({Key? key}) : super(key: key);
 
   @override
-  State<BottomNavigationBarExample> createState() =>
-      _BottomNavigationBarExampleState();
+  State<BottomIndexScreen> createState() => _BottomIndexScreenState();
 }
 
-class _BottomNavigationBarExampleState extends State<BottomNavigationBarExample>
+class _BottomIndexScreenState extends State<BottomIndexScreen>
     with AutomaticKeepAliveClientMixin {
   //
   int _selectedIndex = 0;
   static const TextStyle optionStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
   static const List<Widget> _widgetOptions = <Widget>[
-    // Simple widget list Put here your on Screen
     Text(
       'Index 0: Home',
       style: optionStyle,
@@ -30,30 +30,49 @@ class _BottomNavigationBarExampleState extends State<BottomNavigationBarExample>
     ),
   ];
 
+  late PageController _pageController;
+
   @override
   bool get wantKeepAlive => true; // Ensure the state is kept alive
 
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Future<bool> _onWillPop() async {
+    log(_selectedIndex.toString());
+
     if (_selectedIndex != 0) {
+      _pageController.animateToPage(0,
+          duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+
       setState(() {
         _selectedIndex = 0;
       });
       return false; // Prevent app from closing
     }
-    // Show dialog to confirm app exit only when at index 0
+
     return await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Confirm Exit'),
-            content: Text('Do you want to close the app?'),
+            title: const Text('Confirm Exit'),
+            content: const Text('Do you want to close the app?'),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text('No'),
+                child: const Text('No'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text('Yes'),
+                child: const Text('Yes'),
               ),
             ],
           ),
@@ -62,10 +81,13 @@ class _BottomNavigationBarExampleState extends State<BottomNavigationBarExample>
   }
 
   void _onItemTapped(int index) {
-    // simple to set screen position
+    // Update the selected index to the tapped index
     setState(() {
       _selectedIndex = index;
     });
+    // Change the page in the PageView to the tapped index with animation
+    _pageController.animateToPage(index,
+        duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
   }
 
   @override
@@ -77,8 +99,17 @@ class _BottomNavigationBarExampleState extends State<BottomNavigationBarExample>
         appBar: AppBar(
           title: const Text('BottomNavigationBar Sample'),
         ),
-        body: Center(
-          child: _widgetOptions.elementAt(_selectedIndex),
+        body: PageView.builder(
+          controller: _pageController, // Pass the PageController
+          itemCount: _widgetOptions.length,
+          itemBuilder: (context, index) {
+            return Center(child: _widgetOptions[index]);
+          },
+          onPageChanged: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
         ),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
@@ -103,4 +134,3 @@ class _BottomNavigationBarExampleState extends State<BottomNavigationBarExample>
     );
   }
 }
-// Done form my side 
