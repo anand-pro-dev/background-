@@ -1,0 +1,150 @@
+
+import 'dart:async';
+import 'dart:developer';
+import 'dart:isolate';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Background Time Tracking',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  late SharedPreferences _prefs;
+  String _backgroundEntryTime = '';
+  String _backgroundExitTime = '';
+  int _backgroundCounter = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance!.addObserver(this);
+    _loadBackgroundTimes();
+    _startBackgroundTask();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance!.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _saveBackgroundExitTime();
+    } else if (state == AppLifecycleState.resumed) {
+      _saveBackgroundEntryTime();
+    }
+  }
+
+  Future<void> _loadBackgroundTimes() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _backgroundEntryTime = _prefs.getString('background_entry_time') ?? '';
+      _backgroundExitTime = _prefs.getString('background_exit_time') ?? '';
+    });
+  }
+
+  Future<void> _saveBackgroundEntryTime() async {
+    _prefs = await SharedPreferences.getInstance();
+    String currentTime = DateFormat('h:mm a').format(DateTime.now());
+    await _prefs.setString('background_entry_time', currentTime);
+    setState(() {
+      _backgroundEntryTime = currentTime;
+    });
+  }
+
+  Future<void> _saveBackgroundExitTime() async {
+    _prefs = await SharedPreferences.getInstance();
+    String currentTime = DateFormat('h:mm a').format(DateTime.now());
+    await _prefs.setString('background_exit_time', currentTime);
+    setState(() {
+      _backgroundExitTime = currentTime;
+    });
+  }
+
+  void _startBackgroundTask() async {
+    final ReceivePort receivePort = ReceivePort();
+    await Isolate.spawn(_backgroundTask, receivePort.sendPort);
+    receivePort.listen((message) {
+      setState(() {
+        _backgroundCounter = message as int;
+      });
+    });
+  }
+
+  static void _backgroundTask(SendPort sendPort) {
+    int counter = 0;
+    Timer.periodic(Duration(seconds: 10), (timer) {
+      counter++;
+      log('Background Counter: $counter');
+      sendPort.send(counter);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Background Time Tracking'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              'Background Entry Time:',
+              style: TextStyle(fontSize: 18.0),
+            ),
+            SizedBox(height: 8.0),
+            Text(
+              _backgroundEntryTime.isEmpty ? 'N/A' : _backgroundEntryTime,
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 24.0),
+            Text(
+              'Background Exit Time:',
+              style: TextStyle(fontSize: 18.0),
+            ),
+            SizedBox(height: 8.0),
+            Text(
+              _backgroundExitTime.isEmpty ? 'N/A' : _backgroundExitTime,
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 24.0),
+            Text(
+              'Background Counter:',
+              style: TextStyle(fontSize: 18.0),
+            ),
+            SizedBox(height: 8.0),
+            Text(
+              '$_backgroundCounter',
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
